@@ -1,0 +1,816 @@
+---
+title: "Top Diagnoses Poly Clinic"
+format: docx
+params:
+  clinic_ward: "Neurosurgery Ward"
+  admission_month_w: "Jan"
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+library(tidyverse)
+library(here)
+library(scales)
+library(readxl)
+library(janitor)
+library(stringr)
+#library(icd)
+library(lubridate)
+library(haven)
+library(flextable)
+library(gt)
+library(gtExtras)
+library(webshot2)
+library(glue)
+```
+
+```{r}
+#| label: data
+#| include: false
+icdver <- read_xlsx("DataFiles/2019-icd10-cm.xlsx")
+opd_dx1_poly <- read_csv("DataFiles/Database_Registers/Data_Warehouse/OPD_Diagnoses/2026-JAN-SEP_OPD-CONDITIONS-TTH.csv") |> filter(department=="Poly Clinic") |> 
+  mutate(
+  code = trimws(icd10_code, which = "both"),
+    icd10_code2 = recode(
+      icd10_code,
+      "I64"=	"I639", "I500" = "I509", "V5849" =	"Z4889", "A099" =	"A09", "Z2251"	= "Z228",
+      "Z2252" =	"Z228", "B004.A0" =	"A010", "NI89" =	"N189", "O809" =	"O80", "R104"	= "R109",
+      "K749"	= "K7460", "O06"	= "O03", "I845" =	"K649", "K056" =	"k053", "I986"	= "S026",
+      "I849"	 = "I849", "T814XXA" =	"T8140", "B004-A1" =	"A178", "I859" =	"I85","B004-A0" =	"A178",
+      "E141" =	"E131","N3590"	= "N359","X791"	= "X79","A090"	= "A09","H4011X3"	= "H4010X3",
+      "O822"	= "Z9071", "NI82" =	"N182", "M841"	= "M8430XP", "O756" =	"O75", "KO55"	= "K055",
+      "I849" = "K649","k053"="K053", "S027" = "S026", "C536" = "N879", "H4011X1"="H401191",
+      "Z225" = "Z228","k055" = "K0530","G419" = "G459",  "H4011X2"="H401191",
+      "K103"="M273", "K350" = "K3532", "N459" = "N453", "S327"="S3281","T793" = "L89",
+      "Z2250"="Z228","D895" = "S02401A", "H131" = "H109",  "HI51" = "H1510","K351" = "K358",
+      "K37" = "K377", "R568"= "R569", "T144" = "T149", "T814XXS" = "T814XXS", "G41"="G459","K009"= "K009",
+      "K914" = "K9410", "M840" = "M8430XP","S0210XD" = "S0210" ,"S0267XA"= "S0267"  ,
+      "S028XXD" = "S028", "S028XXS" = "S028","T1490" = "T1490","T814XXD" = "T814", "Z22" = "Z2259",
+      "I849" = "K649"
+    )
+  )
+
+opd_dx1_poly_icd10 <- inner_join(opd_dx1_poly, icdver, by ="code") |> 
+  mutate(disease_name=major)
+
+## IPD
+## 
+
+ipd_dx1_poly <- read_csv("DataFiles/Database_Registers/Data_Warehouse/IPD_AD_Diagnoses/2026-JAN-SEP_TTH-IPD-CONDITIONS-V03.csv") |> filter(department=="Poly Clinic") |> 
+  mutate(
+  code = trimws(icd10_code, which = "both"),
+    icd10_code2 = recode(
+      icd10_code,
+      "I64"=	"I639", "I500" = "I509", "V5849" =	"Z4889", "A099" =	"A09", "Z2251"	= "Z228",
+      "Z2252" =	"Z228", "B004.A0" =	"A010", "NI89" =	"N189", "O809" =	"O80", "R104"	= "R109",
+      "K749"	= "K7460", "O06"	= "O03", "I845" =	"K649", "K056" =	"k053", "I986"	= "S026",
+      "I849"	 = "I849", "T814XXA" =	"T8140", "B004-A1" =	"A178", "I859" =	"I85","B004-A0" =	"A178",
+      "E141" =	"E131","N3590"	= "N359","X791"	= "X79","A090"	= "A09","H4011X3"	= "H4010X3",
+      "O822"	= "Z9071", "NI82" =	"N182", "M841"	= "M8430XP", "O756" =	"O75", "KO55"	= "K055",
+      "I849" = "K649","k053"="K053", "S027" = "S026", "C536" = "N879", "H4011X1"="H401191",
+      "Z225" = "Z228","k055" = "K0530","G419" = "G459",  "H4011X2"="H401191",
+      "K103"="M273", "K350" = "K3532", "N459" = "N453", "S327"="S3281","T793" = "L89",
+      "Z2250"="Z228","D895" = "S02401A", "H131" = "H109",  "HI51" = "H1510","K351" = "K358",
+      "K37" = "K377", "R568"= "R569", "T144" = "T149", "T814XXS" = "T814XXS", "G41"="G459","K009"= "K009",
+      "K914" = "K9410", "M840" = "M8430XP","S0210XD" = "S0210" ,"S0267XA"= "S0267"  ,
+      "S028XXD" = "S028", "S028XXS" = "S028","T1490" = "T1490","T814XXD" = "T814", "Z22" = "Z2259",
+      "I849" = "K649"
+    )
+  )
+
+ipd_dx1_poly_icd10 <- inner_join(ipd_dx1_poly, icdver, by ="code") |> 
+  mutate(disease_name=major)
+
+
+
+
+```
+
+```{r}
+#| label: tbl-jan
+
+dx_name_jan <- opd_dx1_poly_icd10 |>
+  filter(dx_month == "Jan") |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+table1 <- flextable(dx_name_jan) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######   Top OPD Conditions,  Jan, 2026
+
+```{r}
+table1
+```
+
+```{r}
+#| label: tbl-feb
+
+dx_name_feb <- opd_dx1_poly_icd10 |>
+  filter(dx_month== "Feb") |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+table2 <- flextable(dx_name_feb) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top OPD Conditions,  Feb, 2026
+
+```{r}
+table2
+```
+
+```{r}
+#| label: tbl-mar
+
+dx_name_mar <- opd_dx1_poly_icd10 |>
+  filter(dx_month== "Mar") |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+table3 <- flextable(dx_name_mar) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######   Top OPD Conditions,  March, 2026
+
+```{r}
+table3
+```
+
+```{r}
+#| label: tbl-q1
+
+dx_name_Q1 <- opd_dx1_poly_icd10 |>
+  filter(dx_month %in% c("Jan", "Feb", "Mar")) |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+tableQ1 <- flextable(dx_name_Q1) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top OPD Conditions,   1st Quarter, 2026
+
+```{r}
+tableQ1
+```
+
+```{r}
+#| label: tbl-apr
+
+dx_name_apr <- opd_dx1_poly_icd10 |>
+  filter(dx_month == "Apr") |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+table4 <- flextable(dx_name_apr) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top OPD Conditions,   April, 2026
+
+```{r}
+table4
+```
+
+```{r}
+#| label: tbl-may
+
+dx_name_may <- opd_dx1_poly_icd10 |>
+  filter(dx_month == "May") |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+table5 <- flextable(dx_name_may) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######   Top OPD Conditions,  May, 2026
+
+```{r}
+table5
+```
+
+```{r}
+#| label: tbl-jun
+
+dx_name_jun <- opd_dx1_poly_icd10 |>
+  filter(dx_month == "Jun") |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+table6 <- flextable(dx_name_jun) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######   Top OPD Conditions,  June, 2026
+
+```{r}
+table6
+```
+
+```{r}
+#| label: tbl-q2
+
+dx_name_Q2 <- opd_dx1_poly_icd10 |>
+  filter(dx_month %in% c("Apr", "May", "Jun")) |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 11, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+tableQ2 <- flextable(dx_name_Q2) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top OPD Conditions,  2nd Quarter, 2026
+
+```{r}
+tableQ2
+```
+
+```{r}
+#| label: tbl-h1
+
+dx_name_H <- opd_dx1_poly_icd10 |>
+  filter(dx_month %in% c("Jan", "Feb", "Mar", "Apr", "May", "Jun")) |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 11, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+tableH <- flextable(dx_name_H) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top OPD Conditions, January-June, 2026
+
+```{r}
+tableH
+```
+
+```{r}
+#| label: tbl-jul
+#| include: false
+
+dx_name_sp01_jul <- opd_dx1_poly_icd10 |>
+  filter(dx_month %in% c("Jul")) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 10, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+table_jul <- flextable(dx_name_sp01_jul) |>
+  set_header_labels(
+    disease_name = "Disease Sub-Group/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top OPD Conditions,  July, 2026
+
+```{r}
+table_jul
+```
+
+```{r}
+#| label: tbl-aug
+#| include: false
+
+dx_name_sp01_aug <- opd_dx1_poly_icd10 |>
+  filter(dx_month=="Aug") |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 10, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+table_aug <- flextable(dx_name_sp01_aug) |>
+  set_header_labels(
+    disease_name = "Disease Sub-Group/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top OPD Conditions,  August, 2026
+
+```{r}
+table_aug
+```
+
+```{r}
+#| label: tbl-sep
+#| include: false
+
+dx_name_sp01_sep <- opd_dx1_poly_icd10 |>
+  filter(dx_month=="Sep") |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 10, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+table_sep <- flextable(dx_name_sp01_sep) |>
+  set_header_labels(
+    disease_name = "Disease Sub-Group/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top OPD Conditions,  September, 2026
+
+```{r}
+table_sep
+```
+
+```{r}
+#| label: tbl-q3
+#| include: false
+
+dx_name_sp01_Q3 <- opd_dx1_poly_icd10 |>
+  filter(dx_month %in% c("Jul", "Aug", "Sep")) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 11, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+table_q3 <- flextable(dx_name_sp01_Q3) |>
+  set_header_labels(
+    disease_name = "Disease Sub-Group/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top OPD Conditions,  3rd Quarter, 2026
+
+```{r}
+table_q3
+```
+
+
+```{r}
+#| label: tbl-oct
+#| include: false
+
+dx_name_sp01_jan_sep <- opd_dx1_poly_icd10 |>
+  filter(dx_month %in% c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep")) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 10, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+table_jan_sep <- flextable(dx_name_sp01_jan_sep) |>
+  set_header_labels(
+    disease_name = "Disease Sub-Group/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top OPD Conditions, January - October, 2026
+
+```{r}
+table_jan_sep
+```
+
+
+######################### IPD
+
+```{r}
+#| label: tbl-jan-IPD
+
+ipd_dx_name_jan <- ipd_dx1_poly_icd10 |>
+  filter(dx_month == "Jan") |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+ipd_table1 <- flextable(ipd_dx_name_jan) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######   Top IPD Conditions,  Jan, 2026
+
+```{r}
+ipd_table1
+```
+
+```{r}
+#| label: tbl-feb-IPD
+
+ipd_dx_name_feb <- ipd_dx1_poly_icd10 |>
+  filter(dx_month== "Feb") |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+ipd_table2 <- flextable(ipd_dx_name_feb) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top IPD Conditions,  Feb, 2026
+
+```{r}
+ipd_table2
+```
+
+```{r}
+#| label: tbl-mar-IPD
+
+ipd_dx_name_mar <- ipd_dx1_poly_icd10 |>
+  filter(dx_month== "Mar") |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+ipd_table3 <- flextable(ipd_dx_name_mar) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######   Top IPD Conditions,  March, 2026
+
+```{r}
+ipd_table3
+```
+
+```{r}
+#| label: tbl-q1-IPD
+
+ipd_dx_name_Q1 <- ipd_dx1_poly_icd10 |>
+  filter(dx_month %in% c("Jan", "Feb", "Mar")) |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+ipd_tableQ1 <- flextable(ipd_dx_name_Q1) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top IPD Conditions,   1st Quarter, 2026
+
+```{r}
+ipd_tableQ1
+```
+
+```{r}
+#| label: tbl-apr-IPD
+
+ipd_dx_name_apr <- ipd_dx1_poly_icd10 |>
+  filter(dx_month == "Apr") |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+ipd_table4 <- flextable(ipd_dx_name_apr) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top IPD Conditions,   April, 2026
+
+```{r}
+ipd_table4
+```
+
+```{r}
+#| label: tbl-may-IPD
+
+ipd_dx_name_may <- ipd_dx1_poly_icd10 |>
+  filter(dx_month == "May") |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+ipd_table5 <- flextable(ipd_dx_name_may) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######   Top IPD Conditions,  May, 2026
+
+```{r}
+ipd_table5
+```
+
+```{r}
+#| label: tbl-jun-IPD
+
+ipd_dx_name_jun <- ipd_dx1_poly_icd10 |>
+  filter(dx_month == "Jun") |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+ipd_table6 <- flextable(ipd_dx_name_jun) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######   Top IPD Conditions,  June, 2026
+
+```{r}
+ipd_table6
+```
+
+```{r}
+#| label: tbl-q2-IPD
+
+ipd_dx_name_Q2 <- ipd_dx1_poly_icd10 |>
+  filter(dx_month %in% c("Apr", "May", "Jun")) |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 11, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+ipd_tableQ2 <- flextable(ipd_dx_name_Q2) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top IPD Conditions,  2nd Quarter, 2026
+
+```{r}
+ipd_tableQ2
+```
+
+```{r}
+#| label: tbl-h1-IPD
+
+ipd_dx_name_H <- ipd_dx1_poly_icd10 |>
+  filter(dx_month %in% c("Jan", "Feb", "Mar", "Apr", "May", "Jun")) |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 11, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+ipd_tableH <- flextable(ipd_dx_name_H) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top IPD Conditions, January-June, 2026
+
+```{r}
+ipd_tableH
+```
+
+```{r}
+#| label: tbl-jul-IPD
+#| include: false
+
+ipd_dx_name_sp01_jul <- ipd_dx1_poly_icd10 |>
+  filter(dx_month %in% c("Jul")) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 10, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+ipd_table_jul <- flextable(ipd_dx_name_sp01_jul) |>
+  set_header_labels(
+    disease_name = "Disease Sub-Group/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top IPD Conditions,  July, 2026
+
+```{r}
+ipd_table_jul
+```
+
+```{r}
+#| label: tbl-aug-IPD
+#| include: false
+
+ipd_dx_name_sp01_aug <- ipd_dx1_poly_icd10 |>
+  filter(dx_month=="Aug") |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 10, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+ipd_table_aug <- flextable(ipd_dx_name_sp01_aug) |>
+  set_header_labels(
+    disease_name = "Disease Sub-Group/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top IPD Conditions,  August, 2026
+
+```{r}
+ipd_table_aug
+```
+
+```{r}
+#| label: tbl-sep-IPD
+#| include: false
+
+ipd_dx_name_sp01_sep <- ipd_dx1_poly_icd10 |>
+  filter(dx_month=="Sep") |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 10, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+ipd_table_sep <- flextable(ipd_dx_name_sp01_sep) |>
+  set_header_labels(
+    disease_name = "Disease Sub-Group/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top IPD Conditions,  September, 2026
+
+```{r}
+ipd_table_sep
+```
+
+```{r}
+#| label: tbl-q3-IPD
+#| include: false
+
+ipd_dx_name_sp01_Q3 <- ipd_dx1_poly_icd10 |>
+  filter(dx_month %in% c("Jul", "Aug", "Sep")) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 11, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+ipd_table_q3 <- flextable(ipd_dx_name_sp01_Q3) |>
+  set_header_labels(
+    disease_name = "Disease Sub-Group/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top IPD Conditions,  3rd Quarter, 2025
+
+```{r}
+ipd_table_q3
+```
+
+
+```{r}
+#| label: tbl-oct-IPD
+#| include: false
+
+ipd_dx_name_sp01_jan_sep <- ipd_dx1_poly_icd10 |>
+  filter(dx_month %in% c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep")) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 10, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+ipd_table_jan_sep <- flextable(ipd_dx_name_sp01_jan_sep) |>
+  set_header_labels(
+    disease_name = "Disease Sub-Group/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  Top IPD Conditions, January - October, 2026
+
+```{r}
+ipd_table_jan_sep
+```
+
+
+
+

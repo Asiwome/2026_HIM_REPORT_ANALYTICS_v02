@@ -1,0 +1,9 @@
+.Rproj.user/
+.positron/
+*.xlsx
+*.csv
+*.rds
+*.RData
+*.dtaDataFiles/
+DataFiles/
+DataFiles/

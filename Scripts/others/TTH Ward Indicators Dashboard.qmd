@@ -1,0 +1,285 @@
+---
+title: "TTH Ward Indicators Dashboard"
+format:
+  dashboard:
+    theme: cosmo
+    nav-buttons: []
+    scrolling: false
+    orientation: rows
+execute:
+  echo: false
+  warning: false
+---
+
+```{r setup}
+#| include: false
+
+# Loads all the objects/functions built earlier: read_indicator_folder(),
+# ward_group_map, build_department_table(), compute_indicators(), etc.
+source("tth_indicator_pipeline.R")
+
+library(dplyr)
+library(tidyr)
+library(gt)
+library(ggplot2)
+library(plotly)
+
+months_available <- c("Jan","Feb","Mar","Apr","May","Jun")
+latest_month <- tail(months_available, 1)   # change if a specific month should "lead" the dashboard
+
+departments <- c(
+  "Accident & Emergency", "DEENT", "Internal Medicine",
+  "Obstetrics & Gynaecology", "Paediatrics & Child Health",
+  "Poly Clinic", "Surgery", "Trauma & Orthopaedics"
+)
+
+# Shared gt styling helper so every table on the dashboard - management
+# rollup and department pages alike - looks consistent.
+style_gt_management <- function(df, rate_cols = NULL) {
+  tbl <- gt(df) |>
+    tab_options(table.font.names = "Arial", table.font.size = px(13)) |>
+    tab_style(
+      style = list(cell_fill(color = "#0E5A5A"), cell_text(color = "white", weight = "bold")),
+      locations = cells_column_labels()
+    ) |>
+    opt_row_striping() |>
+    tab_style(
+      style = cell_fill(color = "#E8F6F3"),
+      locations = cells_body(rows = seq(1, nrow(df), by = 2))
+    ) |>
+    tab_style(
+      style = cell_fill(color = "#E8F1F8"),
+      locations = cells_body(rows = seq(2, nrow(df), by = 2))
+    )
+
+  if (!is.null(rate_cols)) {
+    for (col in rate_cols) {
+      tbl <- tbl |> data_color(
+        columns = all_of(col),
+        colors = scales::col_numeric(
+          palette = c("#EAF7F5", "#0E5A5A"),
+          domain = c(0, 100)
+        )
+      )
+    }
+  }
+  tbl
+}
+```
+
+# Management Overview
+
+## Row {height="18%"}
+
+```{r}
+#| content: valuebox
+#| title: "Hospital-wide Bed Occupancy"
+
+hospital_occupancy <- all_indicators_long |>
+  inner_join(ward_group_map, by = c("Department","Ward")) |>
+  filter(Month == latest_month) |>
+  group_by(Indicator) |>
+  summarise(Value = sum(Value, na.rm = TRUE), .groups = "drop") |>
+  pivot_wider(names_from = Indicator, values_from = Value)
+
+days_this_month <- days_in_month |> filter(Month == latest_month) |> pull(Days)
+occ_pct <- round(hospital_occupancy$`Patients Days` /
+                  (hospital_occupancy$Beds * days_this_month) * 100, 1)
+
+list(
+  icon = "hospital",
+  color = if (occ_pct > 85) "danger" else if (occ_pct > 70) "warning" else "success",
+  value = paste0(occ_pct, "%")
+)
+```
+
+```{r}
+#| content: valuebox
+#| title: "Total Admissions"
+
+list(
+  icon = "clipboard-plus",
+  color = "primary",
+  value = format(hospital_occupancy$Admissions, big.mark = ",")
+)
+```
+
+```{r}
+#| content: valuebox
+#| title: "Total Patient Days"
+
+list(
+  icon = "calendar3",
+  color = "primary",
+  value = format(hospital_occupancy$`Patients Days`, big.mark = ",")
+)
+```
+
+```{r}
+#| content: valuebox
+#| title: "Hospital-wide Death Rate"
+
+death_rate <- round(hospital_occupancy$Deaths /
+                     (hospital_occupancy$Discharges + hospital_occupancy$Deaths) * 100, 1)
+
+list(
+  icon = "exclamation-triangle",
+  color = if (death_rate > 10) "danger" else "success",
+  value = paste0(death_rate, "%")
+)
+```
+
+## Row {height="42%"}
+
+### Column {width="60%"}
+
+```{r}
+#| title: "Bed Occupancy by Department - Trend (Jan-Jun)"
+
+dept_occupancy_trend <- all_indicators_long |>
+  inner_join(ward_group_map, by = c("Department","Ward")) |>
+  group_by(Department, Indicator, Month) |>
+  summarise(Value = sum(Value, na.rm = TRUE), .groups = "drop") |>
+  pivot_wider(names_from = Indicator, values_from = Value) |>
+  left_join(days_in_month, by = "Month") |>
+  mutate(Occupancy_Pct = round(`Patients Days` / (Beds * Days) * 100, 1))
+
+p <- ggplot(dept_occupancy_trend, aes(x = Month, y = Occupancy_Pct,
+                                       color = Department, group = Department)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) +
+  scale_color_brewer(palette = "Set2") +
+  labs(x = NULL, y = "% Bed Occupancy") +
+  theme_minimal(base_family = "Arial") +
+  theme(legend.position = "bottom", legend.title = element_blank())
+
+ggplotly(p) |> layout(legend = list(orientation = "h", y = -0.2))
+```
+
+### Column {width="40%"}
+
+```{r}
+#| title: "Departments Flagged for Review"
+#| padding: 5px
+
+# Simple management tripwire: high occupancy (>85%) or high death
+# rate (>10%) in the latest month gets surfaced automatically instead
+# of being buried in a full table.
+flagged <- dept_occupancy_trend |>
+  filter(Month == latest_month) |>
+  left_join(
+    all_indicators_long |>
+      inner_join(ward_group_map, by = c("Department","Ward")) |>
+      filter(Month == latest_month) |>
+      group_by(Department, Indicator) |>
+      summarise(Value = sum(Value, na.rm = TRUE), .groups = "drop") |>
+      pivot_wider(names_from = Indicator, values_from = Value) |>
+      mutate(Death_Rate_Pct = round(Deaths / (Discharges + Deaths) * 100, 1)) |>
+      select(Department, Death_Rate_Pct),
+    by = "Department"
+  ) |>
+  filter(Occupancy_Pct > 85 | Death_Rate_Pct > 10) |>
+  select(Department, `% Bed Occupancy` = Occupancy_Pct, `% Death Rate` = Death_Rate_Pct)
+
+if (nrow(flagged) == 0) {
+  gt(tibble(Status = "No departments currently flagged")) |>
+    tab_options(table.font.names = "Arial")
+} else {
+  style_gt_management(flagged, rate_cols = c("% Bed Occupancy", "% Death Rate"))
+}
+```
+
+## Row {height="40%"}
+
+```{r}
+#| title: "All Departments - Latest Month Summary"
+
+dept_summary_latest <- dept_occupancy_trend |>
+  filter(Month == latest_month) |>
+  select(Department, Admissions, Discharges, `Patients Days`, Occupancy_Pct) |>
+  arrange(desc(Occupancy_Pct))
+
+style_gt_management(dept_summary_latest, rate_cols = "Occupancy_Pct")
+```
+
+# Surgery
+
+## Row {height="45%"}
+
+```{r}
+#| title: "Table 12 - Surgery Ward Indicators"
+
+table12_surgery <- build_department_table(all_indicators_long, "Surgery", latest_month)
+
+style_management_table(
+  table12_surgery,
+  title = paste("Surgery Ward Indicators -", latest_month, "2026"),
+  rate_rows = c("% Bed Occupancy", "% Death Rate", "Average Daily Bed Occupancy")
+)
+```
+
+## Row {height="55%"}
+
+### Column {width="50%"}
+
+```{r}
+#| title: "Occupancy by Subspecialty - Trend"
+
+surg_trend <- all_indicators_long |>
+  inner_join(ward_group_map |> filter(Department == "Surgery"), by = "Ward") |>
+  group_by(Subspecialty, Indicator, Month) |>
+  summarise(Value = sum(Value, na.rm = TRUE), .groups = "drop") |>
+  pivot_wider(names_from = Indicator, values_from = Value) |>
+  left_join(days_in_month, by = "Month") |>
+  mutate(Occupancy_Pct = round(`Patients Days` / (Beds * Days) * 100, 1))
+
+p2 <- ggplot(surg_trend, aes(x = Month, y = Occupancy_Pct,
+                              color = Subspecialty, group = Subspecialty)) +
+  geom_line(linewidth = 1) + geom_point(size = 2) +
+  scale_color_brewer(palette = "Dark2") +
+  labs(x = NULL, y = "% Bed Occupancy") +
+  theme_minimal(base_family = "Arial") +
+  theme(legend.position = "bottom", legend.title = element_blank())
+
+ggplotly(p2) |> layout(legend = list(orientation = "h", y = -0.3))
+```
+
+### Column {width="50%"}
+
+```{r}
+#| title: "Average Length of Stay by Subspecialty - Trend"
+
+p3 <- ggplot(surg_trend |> mutate(Total_Discharged = Discharges + coalesce(Deaths, 0),
+                                    ALOS = round(`Patients Days` / Total_Discharged, 1)),
+             aes(x = Month, y = ALOS, color = Subspecialty, group = Subspecialty)) +
+  geom_line(linewidth = 1) + geom_point(size = 2) +
+  scale_color_brewer(palette = "Dark2") +
+  labs(x = NULL, y = "Average Length of Stay (days)") +
+  theme_minimal(base_family = "Arial") +
+  theme(legend.position = "bottom", legend.title = element_blank())
+
+ggplotly(p3) |> layout(legend = list(orientation = "h", y = -0.3))
+```
+
+<!--
+  TEMPLATE FOR REMAINING DEPARTMENTS
+  ------------------------------------------------------------
+  Copy the "# Surgery" page above and repeat for each department,
+  changing only the department name passed to build_department_table()
+  and the ward_group_map filter, e.g. for Internal Medicine:
+
+  # Internal Medicine
+
+  ## Row {height="45%"}
+
+  ```{r}
+  #| title: "Table 12 - Internal Medicine Ward Indicators"
+  table12_medicine <- build_department_table(all_indicators_long, "Internal Medicine", latest_month)
+  style_management_table(table12_medicine,
+                          title = paste("Internal Medicine Ward Indicators -", latest_month, "2026"))
+  ```
+
+  Repeat for: Accident & Emergency, DEENT, Obstetrics & Gynaecology,
+  Paediatrics & Child Health, Poly Clinic, Trauma & Orthopaedics.
+------------------------------------------------------------
+-->

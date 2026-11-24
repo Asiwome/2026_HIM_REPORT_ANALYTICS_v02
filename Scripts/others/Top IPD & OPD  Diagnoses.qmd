@@ -1,0 +1,496 @@
+---
+title: "Top IPD & OPD  Diagnoses"
+format: docx
+params:
+  clinic_ward: "Neurosurgery Ward"
+  admission_month_w: "Jan"
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+library(tidyverse)
+library(here)
+library(scales)
+library(readxl)
+library(janitor)
+library(questionr)
+library(stringr)
+#library(icd)
+library(lubridate)
+library(haven)
+library(flextable)
+library(gt)
+library(gtExtras)
+library(webshot2)
+library(glue)
+```
+
+```{r}
+#| label: data
+#| include: false
+
+ipd_dx1 <- re("")
+```
+
+```{r}
+#| label: tbl-jan
+
+dx_name_jan <- ipd_dx1 |>
+  filter(clinic_ward == params$clinic_ward & admission_month_w == "Jan") |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+table1 <- flextable(dx_name_jan) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######   `r params$clinic_ward`  Jan, 2025
+
+```{r}
+table1
+```
+
+```{r}
+#| label: tbl-feb
+
+dx_name_feb <- ipd_dx1 |>
+  filter(clinic_ward == params$clinic_ward & admission_month_w == "Feb") |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+table2 <- flextable(dx_name_feb) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######   `r params$clinic_ward`  Feb, 2025
+
+```{r}
+table2
+```
+
+```{r}
+#| label: tbl-mar
+
+dx_name_mar <- ipd_dx1 |>
+  filter(clinic_ward == params$clinic_ward & admission_month_w == "Mar") |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+table3 <- flextable(dx_name_mar) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######   `r params$clinic_ward`  March, 2025
+
+```{r}
+table3
+```
+
+```{r}
+#| label: tbl-q1
+
+dx_name_Q1 <- ipd_dx1 |>
+  filter(clinic_ward == params$clinic_ward & admission_month <= 3) |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+tableQ1 <- flextable(dx_name_Q1) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  `r params$clinic_ward`  1st Quarter, 2025
+
+```{r}
+tableQ1
+```
+
+```{r}
+#| label: tbl-apr
+
+dx_name_apr <- ipd_dx1 |>
+  filter(clinic_ward == params$clinic_ward & admission_month_w == "Apr") |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+table4 <- flextable(dx_name_apr) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  `r params$clinic_ward`  April, 2025
+
+```{r}
+table4
+```
+
+```{r}
+#| label: tbl-may
+
+dx_name_may <- ipd_dx1 |>
+  filter(clinic_ward == params$clinic_ward & admission_month_w == "May") |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+table5 <- flextable(dx_name_may) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######   `r params$clinic_ward` May, 2025
+
+```{r}
+table5
+```
+
+```{r}
+#| label: tbl-jun
+
+dx_name_jun <- ipd_dx1 |>
+  filter(clinic_ward == params$clinic_ward & admission_month_w == "Jun") |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n(), .groups = "drop") |>
+  arrange(desc(N)) |>
+  slice_head(n = 10) |>
+  select(disease_name, N)
+
+table6 <- flextable(dx_name_jun) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######   `r params$clinic_ward` June, 2025
+
+```{r}
+table6
+```
+
+```{r}
+#| label: tbl-q2
+
+dx_name_Q2 <- ipd_dx1 |>
+  filter(clinic_ward == params$clinic_ward & admission_month > 3 & admission_month <= 6) |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 11, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+tableQ2 <- flextable(dx_name_Q2) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  `r params$clinic_ward` 2nd Quarter, 2025
+
+```{r}
+tableQ2
+```
+
+```{r}
+#| label: tbl-h1
+
+dx_name_H <- ipd_dx1 |>
+  filter(clinic_ward == params$clinic_ward & admission_month <= 6) |>
+  filter(!is.na(disease_name)) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 11, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+tableH <- flextable(dx_name_H) |>
+  set_header_labels(
+    disease_name = "Major Disease Name/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  `r params$clinic_ward` January-June, 2025
+
+```{r}
+tableH
+```
+
+```{r}
+#| label: tbl-jul
+#| include: false
+
+dx_name_sp01_jul <- ipd_dx1 |>
+  filter(clinic_ward == params$clinic_ward & admission_month == 7) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 10, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+table_jul <- flextable(dx_name_sp01_jul) |>
+  set_header_labels(
+    disease_name = "Disease Sub-Group/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  `r params$clinic_ward` July, 2025
+
+```{r}
+table_jul
+```
+
+```{r}
+#| label: tbl-aug
+#| include: false
+
+dx_name_sp01_aug <- ipd_dx1 |>
+  filter(clinic_ward == params$clinic_ward & admission_month == 8) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 10, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+table_aug <- flextable(dx_name_sp01_aug) |>
+  set_header_labels(
+    disease_name = "Disease Sub-Group/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  `r params$clinic_ward` August, 2025
+
+```{r}
+table_aug
+```
+
+```{r}
+#| label: tbl-sep
+#| include: false
+
+dx_name_sp01_sep <- ipd_dx1 |>
+  filter(clinic_ward == params$clinic_ward & admission_month == 9) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 10, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+table_sep <- flextable(dx_name_sp01_sep) |>
+  set_header_labels(
+    disease_name = "Disease Sub-Group/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  `r params$clinic_ward` September, 2025
+
+```{r}
+table_sep
+```
+
+```{r}
+#| label: tbl-q3
+#| include: false
+
+dx_name_sp01_Q3 <- ipd_dx1 |>
+  filter(clinic_ward == params$clinic_ward & admission_month > 6 & admission_month <= 9) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 11, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+table_q3 <- flextable(dx_name_sp01_Q3) |>
+  set_header_labels(
+    disease_name = "Disease Sub-Group/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  `r params$clinic_ward` 3rd Quarter, 2025
+
+```{r}
+table_q3
+```
+
+```{r}
+#| label: tbl-oct
+#| include: false
+
+dx_name_sp01_oct <- ipd_dx1 |>
+  filter(clinic_ward == params$clinic_ward & admission_month == 10) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 10, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+table_oct <- flextable(dx_name_sp01_oct) |>
+  set_header_labels(
+    disease_name = "Disease Sub-Group/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  `r params$clinic_ward` Ward October, 2025
+
+```{r}
+table_oct
+```
+
+```{r}
+#| label: tbl-nov
+#| include: false
+
+dx_name_sp01_nov <- ipd_dx1 |>
+  filter(clinic_ward == params$clinic_ward & admission_month == 11) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 10, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+table_nov <- flextable(dx_name_sp01_nov) |>
+  set_header_labels(
+    disease_name = "Disease Sub-Group/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  `r params$clinic_ward` Ward November, 2025
+
+```{r}
+table_nov
+```
+
+```{r}
+#| label: tbl-dec
+#| include: false
+
+dx_name_sp01_dec <- ipd_dx1 |>
+  filter(clinic_ward == params$clinic_ward & admission_month == 12) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 10, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+table_dec <- flextable(dx_name_sp01_dec) |>
+  set_header_labels(
+    disease_name = "Disease Sub-Group/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  `r params$clinic_ward` Ward December, 2025
+
+```{r}
+table_dec
+```
+
+```{r}
+#| label: tbl-q4
+#| include: false
+
+dx_name_sp01_Q4 <- ipd_dx1 |>
+  filter(clinic_ward == params$clinic_ward & admission_month >= 10) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 11, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+table_q4 <- flextable(dx_name_sp01_Q4) |>
+  set_header_labels(
+    disease_name = "Disease Sub-Group/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  `r params$clinic_ward` Ward 4th Quarter, 2025
+
+```{r}
+table_q4
+```
+
+```{r}
+#| label: tbl-annual
+#| include: false
+
+dx_name_sp01_Ann <- ipd_dx1 |>
+  filter(clinic_ward == params$clinic_ward) |>
+  group_by(disease_name) |>
+  summarise(N = n()) |>
+  slice_max(n = 11, order_by = N, with_ties = TRUE) |>
+  select(disease_name, N)
+
+table_Ann <- flextable(dx_name_sp01_Ann) |>
+  set_header_labels(
+    disease_name = "Disease Sub-Group/ICD-10",
+    N = "Frequency"
+  ) |>
+  autofit()
+```
+
+######  `r params$clinic_ward` Ward January - December, 2025
+
+```{r}
+table_Ann
+```
